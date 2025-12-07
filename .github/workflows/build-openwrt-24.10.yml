@@ -144,6 +144,9 @@ jobs:
       run: |
         cd openwrt-build
         
+        # 设置终端环境变量，避免交互式工具报错
+        export TERM=linux
+        
         # 清理选项
         if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
           echo "执行清理..."
@@ -175,8 +178,8 @@ jobs:
           exit 1
         fi
         
-        # 验证配置
-        make defconfig
+        # 验证配置（使用非交互式方式）
+        yes '' | make oldconfig > /dev/null 2>&1 || make defconfig
         
         echo "=== 配置验证 ==="
         echo "设备配置状态:"
