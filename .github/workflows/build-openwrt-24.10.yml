@@ -131,7 +131,7 @@ jobs:
         echo "应用自定义配置文件..."
         
         # 1. 复制DTS文件
-        if [ -f ../${{ env.CONFIG_DIR }}/dts/mt7981b-zbt-z8102ax-emmc.dts ]; then
+        if [ -f ../${{ env.CONFIG_DIR }}/dts/mt7981b-zbt-z8102ax-emmc.dts]; then
           echo "复制DTS文件..."
           mkdir -p target/linux/${{ env.TARGET }}/dts/
           cp ../${{ env.CONFIG_DIR }}/dts/mt7981b-zbt-z8102ax-emmc.dts target/linux/${{ env.TARGET }}/dts/
@@ -145,7 +145,7 @@ jobs:
         fi
         
         # 2. 复制设备定义文件
-        if [ -f ../${{ env.CONFIG_DIR }}/target/linux/mediatek/image/filogic.mk ]; then
+        if [ -f ../${{ env.CONFIG_DIR }}/target/linux/mediatek/image/filogic.mk]; then
           echo "复制设备定义文件..."
           mkdir -p target/linux/${{ env.TARGET }}/image/
           cp ../${{ env.CONFIG_DIR }}/target/linux/mediatek/image/filogic.mk target/linux/${{ env.TARGET }}/image/
@@ -162,9 +162,9 @@ jobs:
         fi
         
         # 3. 复制其他可能存在的配置文件
-        if [ -f ../${{ env.CONFIG_DIR }}/configs/zbtlink_z8102ax-emmc.config ]; then
+        if [ -f ../${{ env.CONFIG_DIR }}/configs/zbtlink_z8102ax-emmc.config]; then
           echo "复制设备配置文件..."
-          cp ../${{ env.CONFIG_DIR }}/configs/zbtlink_z8102ax-emmc.config .
+          cp ../${{ env.CONFIG_DIR }}/configs/zbtlink_z8102ax-emmc.config.
         fi
 
     # 第五步：更新和安装软件源
