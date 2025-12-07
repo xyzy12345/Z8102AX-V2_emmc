@@ -2960,9 +2960,8 @@ define Device/zbtlink_z8102ax-emmc
   DEVICE_DTS := mt7981b-zbt-z8102ax-emmc
   DEVICE_DTS_DIR := ../dts
   SUPPORTED_DEVICES := zbtlink,z8102ax-emmc
-  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware \
-    kmod-usb3 kmod-usb-net-qmi-wwan kmod-usb-serial-option \
-    e2fsprogs f2fsck mkf2fs
+  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 \
+    kmod-usb-net-qmi-wwan kmod-usb-serial-option e2fsprogs f2fsck mkf2fs
   IMAGES := sysupgrade.bin
   IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
 endef
