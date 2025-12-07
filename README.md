@@ -30,8 +30,8 @@ The automated build uses GitHub Actions to compile OpenWrt 24.10.4 firmware.
 2. Select "Build OpenWrt 24.10.4 for ZBT-Z8102AX-eMMC"
 3. Click "Run workflow"
 4. Choose build options:
-   - **清除构建缓存** (Clean build cache): Optional, use for clean builds
-   - **跳过下载阶段** (Skip download stage): Optional, speeds up subsequent builds
+   - **Clean build cache**: Optional, use for clean builds
+   - **Skip download stage**: Optional, speeds up subsequent builds
 
 The workflow will automatically:
 - Clone OpenWrt source code (version 24.10.4)
