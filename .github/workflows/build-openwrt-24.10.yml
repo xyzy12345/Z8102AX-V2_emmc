@@ -2,12 +2,12 @@ name: Build OpenWrt for ZBT-Z8102AX-eMMC (MT7981B)
 
 on:
   push:
-    branches: [ main, master, 'copilot/**' ]
+    branches: [main, master, 'copilot/**']
     paths:
       - 'custom-configs/**'
       - '.github/workflows/build-openwrt-7981b-emmc.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   schedule:
     - cron: '0 2 * * *'  # 每天 UTC 2 点自动构建
   workflow_dispatch:
@@ -33,15 +33,15 @@ jobs:
     timeout-minutes: 180
 
     steps:
-    - name: Checkout source code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup build environment
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
           build-essential \
           clang \
           flex \
@@ -69,292 +69,291 @@ jobs:
           fastjar \
           xsltproc
 
-        # 设置 ccache
-        sudo apt-get install -y ccache
-        sudo mkdir -p /opt/ccache
-        sudo chmod 777 /opt/ccache
-        echo "CCACHE_DIR=/opt/ccache" >> $GITHUB_ENV
-        echo "/usr/lib/ccache" >> $GITHUB_PATH
-        ccache -M 10G
+          # 设置 ccache
+          sudo apt-get install -y ccache
+          sudo mkdir -p /opt/ccache
+          sudo chmod 777 /opt/ccache
+          echo "CCACHE_DIR=/opt/ccache" >> $GITHUB_ENV
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+          ccache -M 10G
 
-    - name: Verify file structure
-      run: |
-        echo "=== 文件结构验证 ==="
-        echo "当前目录: $(pwd)"
-        echo ""
-        echo "custom-configs 目录内容:"
-        ls -la custom-configs/ || echo "custom-configs 目录不存在"
-        echo ""
-        echo "DTS 文件路径:"
-        find . -name "*.dts" -type f 2>/dev/null | head -10
-        echo ""
-        echo "Config 文件路径:"
-        find . -name "*.config" -type f 2>/dev/null | head -10
-        echo ""
-        echo "MK 文件路径:"
-        find . -name "*.mk" -type f 2>/dev/null | head -10
+      - name: Verify file structure
+        run: |
+          echo "=== 文件结构验证 ==="
+          echo "当前目录: $(pwd)"
+          echo ""
+          echo "custom-configs 目录内容:"
+          ls -la custom-configs/ || echo "custom-configs 目录不存在"
+          echo ""
+          echo "DTS 文件路径:"
+          find . -name "*.dts" -type f 2>/dev/null | head -10
+          echo ""
+          echo "Config 文件路径:"
+          find . -name "*.config" -type f 2>/dev/null | head -10
+          echo ""
+          echo "MK 文件路径:"
+          find . -name "*.mk" -type f 2>/dev/null | head -10
 
-    - name: Clone OpenWrt
-      run: |
-        echo "克隆 OpenWrt v${{ env.OPENWRT_VERSION }}..."
-        git clone --depth=1 https://github.com/openwrt/openwrt.git --branch v${{ env.OPENWRT_VERSION }}
-        cd openwrt
+      - name: Clone OpenWrt
+        run: |
+          echo "克隆 OpenWrt v${{ env.OPENWRT_VERSION }}..."
+          git clone --depth=1 https://github.com/openwrt/openwrt.git --branch v${{ env.OPENWRT_VERSION }}
+          cd openwrt
 
-    - name: Apply custom configurations
-      run: |
-        cd openwrt
-        
-        echo "=== 应用自定义配置 ==="
-        
-        # 1. 复制 DTS 文件
-        echo "处理 DTS 文件..."
-        DTS_SRC="../custom-configs/dts/mt7981b-zbt-z8102ax-emmc.dts"
-        DTS_DEST="target/linux/mediatek/dts/mt7981b-zbt-z8102ax-emmc.dts"
-        
-        if [ -f "$DTS_SRC" ]; then
+      - name: Apply custom configurations
+        run: |
+          cd openwrt
+
+          echo "=== 应用自定义配置 ==="
+
+          # 1. 复制 DTS 文件
+          echo "处理 DTS 文件..."
+          DTS_SRC="../custom-configs/dts/mt7981b-zbt-z8102ax-emmc.dts"
+          DTS_DEST="target/linux/mediatek/dts/mt7981b-zbt-z8102ax-emmc.dts"
+
+          if [ -f "$DTS_SRC" ]; then
           echo "找到 DTS 文件: $DTS_SRC"
           mkdir -p target/linux/mediatek/dts/
           cp "$DTS_SRC" "$DTS_DEST"
           echo "✅ DTS 文件已复制到: $DTS_DEST"
           ls -la "$DTS_DEST"
-        else
+          else
           echo "❌ 错误: 未找到 DTS 文件: $DTS_SRC"
           echo "尝试查找其他 DTS 文件..."
           find ../ -name "*.dts" -type f 2>/dev/null
           exit 1
-        fi
-        
-        # 2. 创建完整的 filogic.mk 文件
-        echo "处理 filogic.mk 文件..."
-        MK_DIR="target/linux/mediatek/image"
-        MK_FILE="$MK_DIR/filogic.mk"
-        
-        # 创建目录
-        mkdir -p "$MK_DIR"
-        
-        # 检查原始的 filogic.mk 是否存在
-        if [ -f "$MK_FILE" ]; then
+          fi
+
+          # 2. 创建完整的 filogic.mk 文件
+          echo "处理 filogic.mk 文件..."
+          MK_DIR="target/linux/mediatek/image"
+          MK_FILE="$MK_DIR/filogic.mk"
+
+          # 创建目录
+          mkdir -p "$MK_DIR"
+
+          # 检查原始的 filogic.mk 是否存在
+          if [ -f "$MK_FILE" ]; then
           echo "原始 filogic.mk 存在，备份后追加设备定义"
           cp "$MK_FILE" "$MK_FILE.bak"
-          
-          # 追加设备定义到原始文件末尾
-          cat << 'EOF' >> "$MK_FILE"
 
-define Device/zbtlink_z8102ax-emmc
-  DEVICE_VENDOR := ZBT
-  DEVICE_MODEL := Z8102AX-eMMC
-  DEVICE_DTS := mt7981b-zbt-z8102ax-emmc
-  DEVICE_DTS_DIR := ../dts
-  SUPPORTED_DEVICES := zbtlink,z8102ax-emmc
-  IMAGE/sysupgrade.bin := sysupgrade-emmc | append-metadata
-  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
-endef
-TARGET_DEVICES += zbtlink_z8102ax-emmc
-EOF
+          # 追加设备定义到原始文件末尾
+          cat <<-'EOF' >> "$MK_FILE"
+          define Device/zbtlink_z8102ax-emmc
+            DEVICE_VENDOR := ZBT
+            DEVICE_MODEL := Z8102AX-eMMC
+            DEVICE_DTS := mt7981b-zbt-z8102ax-emmc
+            DEVICE_DTS_DIR := ../dts
+            SUPPORTED_DEVICES := zbtlink,z8102ax-emmc
+            IMAGE/sysupgrade.bin := sysupgrade-emmc | append-metadata
+            DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
+          endef
+          TARGET_DEVICES += zbtlink_z8102ax-emmc
+          EOF
           echo "✅ 设备定义已追加到原始 filogic.mk"
-        else
+          else
           echo "原始 filogic.mk 不存在，创建新文件"
           # 创建包含设备定义的完整 filogic.mk 文件
-          cat << 'EOF' > "$MK_FILE"
-# SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+          cat <<-'EOF' > "$MK_FILE"
+          # SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
-KERNEL_LOADADDR := 0x48000000
+          KERNEL_LOADADDR := 0x48000000
 
-define Device/zbtlink_z8102ax-emmc
-  DEVICE_VENDOR := ZBT
-  DEVICE_MODEL := Z8102AX-eMMC
-  DEVICE_DTS := mt7981b-zbt-z8102ax-emmc
-  DEVICE_DTS_DIR := ../dts
-  SUPPORTED_DEVICES := zbtlink,z8102ax-emmc
-  IMAGE/sysupgrade.bin := sysupgrade-emmc | append-metadata
-  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
-endef
-TARGET_DEVICES += zbtlink_z8102ax-emmc
-EOF
+          define Device/zbtlink_z8102ax-emmc
+            DEVICE_VENDOR := ZBT
+            DEVICE_MODEL := Z8102AX-eMMC
+            DEVICE_DTS := mt7981b-zbt-z8102ax-emmc
+            DEVICE_DTS_DIR := ../dts
+            SUPPORTED_DEVICES := zbtlink,z8102ax-emmc
+            IMAGE/sysupgrade.bin := sysupgrade-emmc | append-metadata
+            DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware
+          endef
+          TARGET_DEVICES += zbtlink_z8102ax-emmc
+          EOF
           echo "✅ 新的 filogic.mk 文件已创建"
-        fi
-        
-        # 显示 MK 文件内容
-        echo "=== filogic.mk 文件内容 ==="
-        tail -20 "$MK_FILE"
-        
-        # 3. 复制配置文件
-        echo "处理配置文件..."
-        CONFIG_SRC="../custom-configs/configs/zbtlink_z8102ax-emmc.config"
-        
-        if [ -f "$CONFIG_SRC" ]; then
+          fi
+
+          # 显示 MK 文件内容
+          echo "=== filogic.mk 文件内容 ==="
+          tail -20 "$MK_FILE"
+
+          # 3. 复制配置文件
+          echo "处理配置文件..."
+          CONFIG_SRC="../custom-configs/configs/zbtlink_z8102ax-emmc.config"
+
+          if [ -f "$CONFIG_SRC" ]; then
           echo "找到配置文件: $CONFIG_SRC"
           cp "$CONFIG_SRC" .config
           echo "✅ 配置文件已复制"
           echo "配置文件内容预览:"
           head -20 .config
-        else
+          else
           echo "❌ 错误: 未找到配置文件: $CONFIG_SRC"
           exit 1
-        fi
-        
-        # 4. 添加 Argon 主题源
-        echo "添加 Argon 主题源..."
-        if ! grep -q "argon" feeds.conf.default; then
+          fi
+
+          # 4. 添加 Argon 主题源
+          echo "添加 Argon 主题源..."
+          if ! grep -q "argon" feeds.conf.default; then
           echo "src-git argon https://github.com/jerrykuku/luci-theme-argon.git" >> feeds.conf.default
           echo "src-git argonconfig https://github.com/jerrykuku/luci-app-argon-config.git" >> feeds.conf.default
           echo "✅ Argon 主题源已添加"
-        fi
+          fi
 
-    - name: Update and install feeds
-      run: |
-        cd openwrt
-        
-        echo "=== 更新和安装 feeds ==="
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+      - name: Update and install feeds
+        run: |
+          cd openwrt
 
-    - name: Configure OpenWrt
-      run: |
-        cd openwrt
-        
-        echo "=== 配置 OpenWrt ==="
-        
-        # 清理选项
-        if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
+          echo "=== 更新和安装 feeds ==="
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Configure OpenWrt
+        run: |
+          cd openwrt
+
+          echo "=== 配置 OpenWrt ==="
+
+          # 清理选项
+          if [[ "${{ github.event.inputs.clean_build }}" == "true" ]]; then
           echo "执行清理构建..."
           make clean
           rm -rf tmp .config* feeds
           # 重新复制配置文件
           cp ../custom-configs/configs/zbtlink_z8102ax-emmc.config .config
-        fi
-        
-        # 生成默认配置
-        echo "生成默认配置..."
-        make defconfig
-        
-        # 检查配置
-        echo "=== 配置检查 ==="
-        echo "目标设备配置:"
-        grep -i "zbtlink\|z8102ax\|mediatek.*filogic" .config || echo "未找到相关配置"
-        echo ""
-        echo "TARGET 配置:"
-        grep "CONFIG_TARGET_" .config | grep -v "^#" | head -20
-        
-        # 确保设备配置已启用
-        if ! grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y" .config; then
+          fi
+
+          # 生成默认配置
+          echo "生成默认配置..."
+          make defconfig
+
+          # 检查配置
+          echo "=== 配置检查 ==="
+          echo "目标设备配置:"
+          grep -i "zbtlink\|z8102ax\|mediatek.*filogic" .config || echo "未找到相关配置"
+          echo ""
+          echo "TARGET 配置:"
+          grep "CONFIG_TARGET_" .config | grep -v "^#" | head -20
+
+          # 确保设备配置已启用
+          if ! grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y" .config; then
           echo "⚠️ 警告: 设备配置未启用，尝试手动启用..."
           # 先检查是否存在该配置行
           if grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc" .config; then
-            # 如果是被注释的，则启用
-            sed -i 's/# CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc is not set/CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y/' .config
+          # 如果是被注释的，则启用
+          sed -i 's/# CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc is not set/CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y/' .config
           else
-            # 如果不存在，则添加
-            echo "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y" >> .config
+          # 如果不存在，则添加
+          echo "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y" >> .config
           fi
           make defconfig
-        fi
-        
-        # 验证设备 DTS 配置
-        echo "验证设备 DTS 配置..."
-        if grep -q "CONFIG_DEFAULT_DEVICE_DTS=\"mt7981b-zbt-z8102ax-emmc\"" .config; then
+          fi
+
+          # 验证设备 DTS 配置
+          echo "验证设备 DTS 配置..."
+          if grep -q "CONFIG_DEFAULT_DEVICE_DTS=\"mt7981b-zbt-z8102ax-emmc\"" .config; then
           echo "✅ 设备 DTS 配置正确"
-        else
+          else
           echo "⚠️ 警告: 设备 DTS 配置可能不正确"
           grep "CONFIG_DEFAULT_DEVICE_DTS" .config || echo "未找到 DTS 配置"
-        fi
+          fi
 
-    - name: Download package sources
-      if: github.event.inputs.skip_download != 'true'
-      run: |
-        cd openwrt
-        
-        echo "=== 下载软件包源码 ==="
-        make download -j$(nproc) || make download -j1
-        
-        # 清理无效的下载文件
-        find dl -size -1024c -exec rm -f {} \;
+      - name: Download package sources
+        if: github.event.inputs.skip_download != 'true'
+        run: |
+          cd openwrt
 
-    - name: Build OpenWrt
-      run: |
-        cd openwrt
-        
-        echo "=== 开始编译 OpenWrt ==="
-        echo "目标: ${{ env.TARGET }}/${{ env.SUBTARGET }}"
-        echo "设备: ${{ env.DEVICE }}"
-        
-        # 设置编译线程数
-        CPU_CORES=$(nproc)
-        BUILD_JOBS=$((CPU_CORES + 1))
-        
-        START_TIME=$(date +%s)
-        
-        # 开始编译（使用单线程便于调试）
-        echo "开始编译，使用 1 个线程便于调试..."
-        time make -j1 V=s 2>&1 | tee build.log
-        
-        # 如果单线程编译成功，可以尝试多线程
-        # echo "开始编译，使用 $BUILD_JOBS 个线程..."
-        # time make -j$BUILD_JOBS V=s 2>&1 | tee build.log
-        
-        END_TIME=$(date +%s)
-        DURATION=$((END_TIME - START_TIME))
-        echo "编译耗时: $((DURATION / 60))分$((DURATION % 60))秒"
-        
-        # 检查编译结果
-        echo "=== 编译结果检查 ==="
-        FIRMWARE_DIR="bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}"
-        
-        if [ -d "$FIRMWARE_DIR" ]; then
+          echo "=== 下载软件包源码 ==="
+          make download -j$(nproc) || make download -j1
+
+          # 清理无效的下载文件
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: Build OpenWrt
+        run: |
+          cd openwrt
+
+          echo "=== 开始编译 OpenWrt ==="
+          echo "目标: ${{ env.TARGET }}/${{ env.SUBTARGET }}"
+          echo "设备: ${{ env.DEVICE }}"
+
+          # 设置编译线程数
+          CPU_CORES=$(nproc)
+          BUILD_JOBS=$((CPU_CORES + 1))
+
+          START_TIME=$(date +%s)
+
+          # 开始编译（使用单线程便于调试）
+          echo "开始编译，使用 1 个线程便于调试..."
+          time make -j1 V=s 2>&1 | tee build.log
+
+          # 如果单线程编译成功，可以尝试多线程
+          # echo "开始编译，使用 $BUILD_JOBS 个线程..."
+          # time make -j$BUILD_JOBS V=s 2>&1 | tee build.log
+
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          echo "编译耗时: $((DURATION / 60))分$((DURATION % 60))秒"
+
+          # 检查编译结果
+          echo "=== 编译结果检查 ==="
+          FIRMWARE_DIR="bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}"
+
+          if [ -d "$FIRMWARE_DIR" ]; then
           echo "固件目录内容:"
           ls -la "$FIRMWARE_DIR/"
-          
+
           # 查找特定设备的固件
           echo "查找 ${{ env.DEVICE }} 的固件文件:"
           find "$FIRMWARE_DIR" -name "*${{ env.DEVICE }}*" -type f 2>/dev/null || echo "未找到设备特定固件"
-          
+
           echo "查找所有 sysupgrade 文件:"
           find "$FIRMWARE_DIR" -name "*sysupgrade*" -type f 2>/dev/null || echo "未找到 sysupgrade 文件"
-          
+
           echo "查找所有 bin 文件:"
           find "$FIRMWARE_DIR" -name "*.bin" -type f 2>/dev/null || echo "未找到 bin 文件"
-          
+
           # 检查是否有任何固件生成
           BIN_COUNT=$(find "$FIRMWARE_DIR" -name "*.bin" -o -name "*.itb" -type f 2>/dev/null | wc -l)
           if [ "$BIN_COUNT" -gt 0 ]; then
-            echo "✅ 编译成功！生成 $BIN_COUNT 个固件文件"
-            echo "固件列表:"
-            find "$FIRMWARE_DIR" -name "*.bin" -o -name "*.itb" -type f 2>/dev/null | while read f; do
-              echo "  - $(basename "$f") ($(ls -lh "$f" | awk '{print $5}'))"
-            done
+          echo "✅ 编译成功！生成 $BIN_COUNT 个固件文件"
+          echo "固件列表:"
+          find "$FIRMWARE_DIR" -name "*.bin" -o -name "*.itb" -type f 2>/dev/null | while read f; do
+          echo "  - $(basename "$f") ($(ls -lh "$f" | awk '{print $5}'))"
+          done
           else
-            echo "❌ 编译完成但未生成固件文件"
-            echo "构建日志末尾:"
-            tail -200 build.log | grep -i "error\|failed\|warning\|recipe for target" | tail -50
+          echo "❌ 编译完成但未生成固件文件"
+          echo "构建日志末尾:"
+          tail -200 build.log | grep -i "error\|failed\|warning\|recipe for target" | tail -50
           fi
-        else
+          else
           echo "❌ 固件目录不存在: $FIRMWARE_DIR"
           echo "构建日志末尾:"
           tail -200 build.log
-        fi
+          fi
 
-    - name: Upload firmware artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: openwrt-${{ env.DEVICE }}-firmware
-        path: |
-          openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/*.bin
-          openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/*.itb
-          openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/sha256sums
-          openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/config.buildinfo
-          openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/feeds.buildinfo
-        if-no-files-found: warn
-        retention-days: 7
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openwrt-${{ env.DEVICE }}-firmware
+          path: |
+            openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/*.bin
+            openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/*.itb
+            openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/sha256sums
+            openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/config.buildinfo
+            openwrt/bin/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/feeds.buildinfo
+          if-no-files-found: warn
+          retention-days: 7
 
-    - name: Upload build logs
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: openwrt-${{ env.DEVICE }}-logs
-        path: |
-          openwrt/build.log
-          openwrt/.config
-          openwrt/target/linux/mediatek/image/filogic.mk
-          openwrt/target/linux/mediatek/image/filogic.mk.bak
-        retention-days: 7
+      - name: Upload build logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openwrt-${{ env.DEVICE }}-logs
+          path: |
+            openwrt/build.log
+            openwrt/.config
+            openwrt/target/linux/mediatek/image/filogic.mk
+            openwrt/target/linux/mediatek/image/filogic.mk.bak
+          retention-days: 7
