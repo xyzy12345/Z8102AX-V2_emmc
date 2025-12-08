@@ -246,7 +246,8 @@ jobs:
           # 如果不存在，则添加
           echo "CONFIG_TARGET_mediatek_filogic_DEVICE_zbtlink_z8102ax-emmc=y" >> .config
           fi
-          make defconfig
+          # 使用非交互式方式更新配置，避免 CI 环境中的 menuconfig 错误
+          yes "" | make oldconfig
           fi
 
           # 验证设备 DTS 配置
